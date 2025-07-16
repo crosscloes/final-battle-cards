@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Final Battle Cards</title>
+  <style>
+    @keyframes gradientAnimation {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(-45deg, #1e3c72, #2a5298, #005c97, #363795, #8a2387, #e94057, #f27121, #4facfe, #00f260, #0575e6);
+      background-size: 1000% 1000%;
+      animation: gradientAnimation 30s ease infinite;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 5px rgba(0,0,0,0.7);
+      font-weight: 900;
+      letter-spacing: 3px;
+    }
+    .card {
+      border: 3px solid #555;
+      border-radius: 8px;
+      background: #222;
+      padding: 10px;
+      margin: 10px;
+      width: 160px;
+      display: inline-block;
+      user-select: none;
+      color: white;
+    }
+    .card.selected { border-style: dashed; }
+    button {
+      margin-top: 5px;
+      padding: 12px 20px;
+      background: #444;
+      color: white;
+      border: none;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.3s ease;
+      border-radius: 10px;
+      font-size: 20px;
+      font-weight: 600;
+      min-width: 240px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    button:disabled {
+      background: #222;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      background-color: #666;
+    }
+    .hidden { display: none; }
+    .battle-log {
+      margin-top: 20px;
+      border: 1px solid #444;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      background: #000;
+      text-align: left;
+      white-space: pre-line;
+      font-family: monospace;
+      font-size: 14px;
+      border-radius: 8px;
+      box-shadow: inset 0 0 8px #222;
+    }
+    #player-cards, #actions, #ai-cards-container, #deck-cards, #shop-cards {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    h3 {
+      margin-bottom: 10px;
+    }
+    .emoji {
+      font-size: 48px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    /* Main menu buttons stacked big */
+    #menu-buttons {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      margin-top: 10px;
+    }
+    /* Shop buttons stacked big */
+    #shop button[data-rarity] {
+      min-width: 280px;
+      margin: 12px auto;
+      font-size: 22px;
+      padding: 14px 0;
+      border-radius: 14px;
+      font-weight: 700;
+      box-shadow: 0 5px 12px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+
+<h1>Final Battle Cards</h1>
+
+<!-- Main Menu -->
+<div id="menu">
+  <p>💰 Coins: <span id="coin-count">3</span></p>
+
+  <div id="menu-buttons">
+    <button id="start-game-btn">▶ Start Game</button>
+    <button id="shop-btn">🛒 Shop</button>
+    <button id="deck-btn">📂 Deck</button>
+    <button id="save-load-btn">💾 Save / Load</button>
+  </div>
+</div>
+
+<!-- Save/Load Menu -->
+<div id="save-load-menu" class="hidden">
+  <h2>Save / Load Game</h2>
+  <button id="save-btn">💾 Save Game</button>
+  <button id="load-btn">📂 Load Game</button>
+  <br /><br />
+  <button id="save-load-back-btn">⬅ Back to Menu</button>
+</div>
+
+<!-- Shop -->
+<div id="shop" class="hidden">
+  <h2>🛒 Shop</h2>
+  <p>💰 Coins: <span id="shop-coin-count">3</span></p>
+  <button data-rarity="common">🧱 Common (2 Coins)</button>
+  <button data-rarity="rare">💎 Rare (4 Coins)</button>
+  <button data-rarity="epic">🔥 Epic (6 Coins)</button>
+  <button data-rarity="legendary">🌟 Legendary (10 Coins)</button>
+  <br /><br />
+  <button id="shop-back-btn">⬅ Back to Menu</button>
+</div>
+
+<!-- Deck -->
+<div id="deck" class="hidden">
+  <h2>📂 Your Deck</h2>
+  <div id="deck-cards"></div>
+  <br />
+  <button id="deck-back-btn">⬅ Back to Menu</button>
+</div>
+
+<!-- Game Screen -->
+<div id="game" class="hidden">
+  <p>Opponent's Cards:</p>
+  <div id="ai-cards-container"></div>
+
+  <hr style="width: 80%; margin: 20px auto; border-color: #444;" />
+
+  <p>Select <strong>3 cards</strong> to battle</p>
+  <div id="player-cards"></div>
+  <button id="confirm-selection-btn">Confirm Selection</button>
+
+  <div id="actions" class="hidden"></div>
+  <button id="next-round-btn" class="hidden">Play Round</button>
+
+  <br />
+  <button id="exit-battle-btn">Exit Battle</button>
+
+  <h2>Battle Log</h2>
+  <div id="log" class="battle-log"></div>
+</div>
+
+<!-- Buy sound effect -->
+<audio id="buy-sound" src="https://cdn.pixabay.com/download/audio/2021/12/08/audio_c57606a12a.mp3?filename=coin-pickup-5726.mp3" preload="auto"></audio>
+
+<script>
+window.onload = () => {
+  // Variables
+  let playerCards = [];
+  let aiCards = [];
+  let selectedCards = [];
+  let currentRound = 0;
+  const totalRounds = 3;
+  let playerWins = 0;
+  let aiWins = 0;
+  let playerActions = [];
+  let coins = 3;
+
+  // If playerCards is empty on start, add 5 common cards
+  if (playerCards.length === 0) {
+    for (let i = 0; i < 5; i++) {
+      playerCards.push(getRandomCard("common"));
+    }
+  }
+
+  // Elements
+  const menu = document.getElementById("menu");
+  const shop = document.getElementById("shop");
+  const deck = document.getElementById("deck");
+  const saveLoadMenu = document.getElementById("save-load-menu");
+  const gameScreen = document.getElementById("game");
+
+  const coinCount = document.getElementById("coin-count");
+  const shopCoinCount = document.getElementById("shop-coin-count");
+  const deckCardsDiv = document.getElementById("deck-cards");
+  const playerCardsDiv = document.getElementById("player-cards");
+  const aiCardsContainer = document.getElementById("ai-cards-container");
+  const actionsDiv = document.getElementById("actions");
+  const logDiv = document.getElementById("log");
+  const nextRoundBtn = document.getElementById("next-round-btn");
+
+  // Event bindings
+  document.getElementById("start-game-btn").onclick = startGame;
+  document.getElementById("shop-btn").onclick = showShop;
+  document.getElementById("deck-btn").onclick = showDeck;
+  document.getElementById("save-load-btn").onclick = showSaveLoadMenu;
+
+  document.getElementById("shop-back-btn").onclick = showMenu;
+  document.getElementById("deck-back-btn").onclick = showMenu;
+  document.getElementById("save-load-back-btn").onclick = showMenu;
+
+  document.getElementById("save-btn").onclick = saveGame;
+  document.getElementById("load-btn").onclick = loadGame;
+
+  document.getElementById("confirm-selection-btn").onclick = confirmSelection;
+  nextRoundBtn.onclick = playRound;
+  document.getElementById("exit-battle-btn").onclick = endBattleEarly;
+
+  // Shop buy buttons event delegation
+  shop.querySelectorAll("button[data-rarity]").forEach(button => {
+    button.onclick = () => buyCard(button.getAttribute("data-rarity"));
+  });
+
+  // Functions
+
+  function getRandomEmoji() {
+    const emojis = ["🔥", "🐉", "🐱", "⚔️", "🛡️", "💀", "🌟", "🦇", "🐺", "🐲", "🌪️", "🦄"];
+    return emojis[Math.floor(Math.random() * emojis.length)];
+  }
+
+  function getRandomCard(rarity = "common") {
+    const names = [
+      "Fire Lizard", "Sneaky Goblin", "Shield Turtle", "Mega Puncher",
+      "Dark Wizard", "Laser Cat", "Bone Crusher", "Thunder Fist",
+      "Knighty McFighty", "Pikaboom", "Storm Dragon", "Waffle Warrior",
+      "Phoenix Flame", "Dragonlord", "Titan Crusher", "Shadow Reaper"
+    ];
+    const name = names[Math.floor(Math.random() * names.length)];
+    let attack, defense, color;
+    switch (rarity) {
+      case "legendary": attack = Math.floor(Math.random() * 9 + 12); defense = Math.floor(Math.random() * 9 + 12); color = "#ff8c00"; break;
+      case "epic": attack = Math.floor(Math.random() * 8 + 8); defense = Math.floor(Math.random() * 8 + 8); color = "#a020f0"; break;
+      case "rare": attack = Math.floor(Math.random() * 6 + 5); defense = Math.floor(Math.random() * 6 + 5); color = "#00f"; break;
+      default: attack = Math.floor(Math.random() * 6 + 1); defense = Math.floor(Math.random() * 6 + 1); color = "#888";
+    }
+    return { id: "C" + Math.random().toString(36).slice(2, 6), name, emoji: getRandomEmoji(), attack, defense, rarity, color, selected: false };
+  }
+
+  function updateCoinDisplay() {
+    coinCount.textContent = coins;
+    shopCoinCount.textContent = coins;
+  }
+
+  function hideAllScreens() {
+    menu.classList.add("hidden");
+    shop.classList.add("hidden");
+    deck.classList.add("hidden");
+    saveLoadMenu.classList.add("hidden");
+    gameScreen.classList.add("hidden");
+  }
+
+  function showMenu() {
+    hideAllScreens();
+    updateCoinDisplay();
+    menu.classList.remove("hidden");
+  }
+
+  function showShop() {
+    hideAllScreens();
+    updateCoinDisplay();
+    shop.classList.remove("hidden");
+  }
+
+  function showDeck() {
+    hideAllScreens();
+    renderDeck();
+    deck.classList.remove("hidden");
+  }
+
+  function showSaveLoadMenu() {
+    hideAllScreens();
+    saveLoadMenu.classList.remove("hidden");
+  }
+
+  function buyCard(rarity = "common") {
+    const costs = { common: 2, rare: 4, epic: 6, legendary: 10 };
+    if (coins < costs[rarity]) {
+      alert("Not enough coins!");
+      return;
+    }
+    const newCard = getRandomCard(rarity);
+    playerCards.push(newCard);
+    coins -= costs[rarity];
+    updateCoinDisplay();
+    document.getElementById("buy-sound").currentTime = 0;
+    document.getElementById("buy-sound").play();
+    alert(`You bought a ${rarity.toUpperCase()} card: ${newCard.name}!`);
+  }
+
+  function renderDeck() {
+    deckCardsDiv.innerHTML = "";
+    if (playerCards.length === 0) {
+      deckCardsDiv.textContent = "You have no cards in your deck.";
+      return;
+    }
+    playerCards.forEach(card => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.style.borderColor = card.color;
+      div.innerHTML = `
+        <div class="emoji">${card.emoji}</div>
+        <strong>${card.name}</strong><br>
+        <small style="opacity:0.7;">[${card.rarity.toUpperCase()}]</small><br>
+        ⚔️ ATK: ${card.attack}<br>
+        🛡 DEF: ${card.defense}
+      `;
+      deckCardsDiv.appendChild(div);
+    });
+  }
+
+  function startGame() {
+    if (playerCards.length < 3) {
+      alert("You need at least 3 cards to battle!");
+      return;
+    }
+
+    // Generate AI cards at start to show them before player picks cards
+    aiCards = [];
+    const rarities = ["common", "rare", "epic"];
+    for (let i = 0; i < 3; i++) {
+      aiCards.push(getRandomCard(rarities[Math.floor(Math.random() * rarities.length)]));
+    }
+
+    hideAllScreens();
+    gameScreen.classList.remove("hidden");
+
+    // Show opponent cards first
+    renderAICards();
+
+    playerCards.forEach(c => c.selected = false);
+    selectedCards = [];
+    renderGameCards();
+    resetBattleUI();
+
+    // Show the confirm selection button and player cards so they can select
+    document.getElementById("confirm-selection-btn").disabled = false;
+  }
+
+  function renderAICards() {
+    aiCardsContainer.innerHTML = "";
+    aiCards.forEach(card => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.style.borderColor = card.color;
+      div.innerHTML = `
+        <div class="emoji">${card.emoji}</div>
+        <strong>${card.name}</strong><br>
+        <small style="opacity:0.7;">[${card.rarity.toUpperCase()}]</small><br>
+        ⚔️ ATK: ${card.attack}<br>
+        🛡 DEF: ${card.defense}
+      `;
+      aiCardsContainer.appendChild(div);
+    });
+  }
+
+  function renderGameCards() {
+    playerCardsDiv.innerHTML = "";
+    playerCards.forEach((card, i) => {
+      const div = document.createElement("div");
+      div.className = "card" + (card.selected ? " selected" : "");
+      div.style.borderColor = card.color;
+      div.innerHTML = `
+        <div class="emoji">${card.emoji}</div>
+        <strong>${card.name}</strong><br>
+        <small style="opacity:0.7;">[${card.rarity.toUpperCase()}]</small><br>
+        ⚔️ ATK: ${card.attack}<br>
+        🛡 DEF: ${card.defense}<br>
+        <button onclick="selectCard(${i})">${card.selected ? "Unselect" : "Select"}</button>
+      `;
+      playerCardsDiv.appendChild(div);
+    });
+  }
+
+  window.selectCard = function(index) {
+    const selectedCount = playerCards.filter(c => c.selected).length;
+    const card = playerCards[index];
+    if (!card.selected && selectedCount >= 3) {
+      alert("You can only select 3 cards!");
+      return;
+    }
+    card.selected = !card.selected;
+    renderGameCards();
+  }
+
+  function confirmSelection() {
+    selectedCards = playerCards.filter(c => c.selected);
+    if (selectedCards.length !== 3) {
+      alert("Select exactly 3 cards to begin!");
+      return;
+    }
+
+    currentRound = 0;
+    playerWins = 0;
+    aiWins = 0;
+    logDiv.textContent = "";
+    actionsDiv.classList.remove("hidden");
+    nextRoundBtn.classList.remove("hidden");
+
+    showActionChoices();
+
+    // Disable confirm selection button now that cards are chosen
+    document.getElementById("confirm-selection-btn").disabled = true;
+  }
+
+  function showActionChoices() {
+    actionsDiv.innerHTML = "<h3>Choose actions for Round " + (currentRound + 1) + "</h3>";
+    playerActions = [];
+    selectedCards.forEach((card, i) => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.style.borderColor = card.color;
+      div.innerHTML = `
+        <div class="emoji">${card.emoji}</div>
+        <strong>${card.name}</strong><br>
+        <small style="opacity:0.7;">[${card.rarity.toUpperCase()}]</small><br>
+        ⚔️ ATK: ${card.attack}<br>
+        🛡 DEF: ${card.defense}<br>
+        <button onclick="chooseAction(${i}, 'attack')">Attack</button>
+        <button onclick="chooseAction(${i}, 'defend')">Defend</button>
+        <p id="chosen-${i}">No action selected</p>
+      `;
+      actionsDiv.appendChild(div);
+      playerActions.push(null);
+    });
+  }
+
+  window.chooseAction = function(i, action) {
+    playerActions[i] = action;
+    document.getElementById(`chosen-${i}`).textContent = "Action: " + action.toUpperCase();
+  }
+
+  function playRound() {
+    if (playerActions.includes(null)) {
+      alert("Choose actions for all your cards before playing the round!");
+      return;
+    }
+
+    // AI picks random actions for each card
+    const aActions = aiCards.map(() => (Math.random() < 0.5 ? "attack" : "defend"));
+
+    // Battle calculation
+    let pScore = 0;
+    let aScore = 0;
+    let text = `Round ${currentRound + 1}:\n`;
+
+    for (let i = 0; i < 3; i++) {
+      const pCard = selectedCards[i];
+      const aCard = aiCards[i];
+      const pAction = playerActions[i];
+      const aAction = aActions[i];
+
+      let pPower = pCard.attack;
+      let aPower = aCard.attack;
+      if (pAction === "defend") pPower = pCard.defense;
+      if (aAction === "defend") aPower = aCard.defense;
+
+      text += `${pCard.name} (${pAction}) vs ${aCard.name} (${aAction})\n`;
+
+      if (pPower > aPower) {
+        pScore++;
+        text += "-> Player card wins this matchup!\n";
+      } else if (aPower > pPower) {
+        aScore++;
+        text += "-> AI card wins this matchup!\n";
+      } else {
+        text += "-> It's a tie!\n";
+      }
+    }
+
+    if (pScore > aScore) {
+      playerWins++;
+      text += ">> Player wins this round!\n\n";
+    } else if (aScore > pScore) {
+      aiWins++;
+      text += ">> AI wins this round!\n\n";
+    } else {
+      text += ">> This round is a tie!\n\n";
+    }
+
+    logDiv.textContent += text;
+
+    currentRound++;
+
+    if (currentRound >= totalRounds) {
+      nextRoundBtn.classList.add("hidden");
+      actionsDiv.classList.add("hidden");
+      aiCardsContainer.classList.add("hidden");
+      playerCardsDiv.classList.add("hidden");
+      document.getElementById("confirm-selection-btn").classList.add("hidden");
+
+      let finalResult = "";
+      if (playerWins > aiWins) {
+        finalResult = "🏆 You won the battle! +1 coin";
+        coins++;
+      } else if (aiWins > playerWins) {
+        finalResult = "😞 You lost the battle! -1 coin";
+        coins = Math.max(0, coins - 1);
+      } else {
+        finalResult = "🤝 Battle tied! No coin change.";
+      }
+      logDiv.textContent += `Battle over!\nPlayer wins: ${playerWins}\nAI wins: ${aiWins}\n${finalResult}\n\n`;
+
+      updateCoinDisplay();
+
+      // After 3 seconds, return to home menu automatically
+      setTimeout(() => {
+        showMenu();
+        // Reset UI for next game
+        aiCardsContainer.classList.remove("hidden");
+        playerCardsDiv.classList.remove("hidden");
+        document.getElementById("confirm-selection-btn").classList.remove("hidden");
+        document.getElementById("confirm-selection-btn").disabled = false;
+      }, 3000);
+    } else {
+      showActionChoices();
+    }
+  }
+
+  function resetBattleUI() {
+    actionsDiv.classList.add("hidden");
+    nextRoundBtn.classList.add("hidden");
+    logDiv.textContent = "";
+  }
+
+  function endBattleEarly() {
+    if (confirm("Are you sure you want to exit the battle? Your progress will be lost.")) {
+      showMenu();
+    }
+  }
+
+  function saveGame() {
+    const data = {
+      coins,
+      playerCards,
+    };
+    localStorage.setItem("finalBattleCardsSave", JSON.stringify(data));
+    alert("Game saved!");
+  }
+
+  function loadGame() {
+    const dataStr = localStorage.getItem("finalBattleCardsSave");
+    if (!dataStr) {
+      alert("No saved game found!");
+      return;
+    }
+    try {
+      const data = JSON.parse(dataStr);
+      coins = data.coins || 3;
+      playerCards = data.playerCards || [];
+
+      updateCoinDisplay();
+      alert("Game loaded!");
+    } catch (e) {
+      alert("Failed to load game data!");
+    }
+  }
+
+  updateCoinDisplay();
+  showMenu();
+};
+</script>
+
+</body>
+</html>
